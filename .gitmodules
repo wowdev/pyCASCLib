@@ -1,0 +1,3 @@
+[submodule "CASCLib"]
+	path = CASCLib
+	url = https://github.com/ladislav-zezula/CascLib

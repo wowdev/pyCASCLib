@@ -18,6 +18,7 @@ Once the building is finished, the library is ready to use in Python.
 
 The Python API of the library is documented in the code with docstrings and type hints.
 
+```
 from CASC import CASCHandler, FileOpenFlags
 
 # As a context manager
@@ -34,3 +35,4 @@ with CASCHandler('/Volumes/something/World of Warcraft/', False) as casc:
 casc = CASCHandler('/Volumes/something/World of Warcraft/', False)
 print(('world/arttest/boxtest/xyz.m2', FileOpenFlags.CASC_OPEN_BY_NAME) in casc)
 casc.close()
+```

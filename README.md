@@ -23,16 +23,16 @@ from CASC import CASCHandler, FileOpenFlags
 
 # As a context manager
 with CASCHandler('/Volumes/something/World of Warcraft/', False) as casc:
-    flags = FileOpenFlags.CASC_OPEN_BY_FILEID # load file by FileDataID
+    flags = FileOpenFlags.CASC_OPEN_BY_FILEID  # load file by FileDataID
 
-    ret = casc.read_file(189077, flags)
-    print(ret) # get raw file bytes
-
-    print(casc.file_exists(189077, flags))
-    print(casc.get_file_info(189077, flags).file_data_id) 
+    with casc.read_file(189077, flags) as file:  # CASCFile can also be opened as a context manager
+        print(file.data) # get raw file bytes, lazy loading is supported
+        print(file.info.file_data_id)  # get file's info, lazy loading is supported
+        
+    print(casc.file_exists(189077, flags))  # check if file exists
     
 # Usage with manual closing
 casc = CASCHandler('/Volumes/something/World of Warcraft/', False)
-print(('world/arttest/boxtest/xyz.m2', FileOpenFlags.CASC_OPEN_BY_NAME) in casc)
+print(('world/arttest/boxtest/xyz.m2', FileOpenFlags.CASC_OPEN_BY_NAME) in casc)  # check if file exists
 casc.close()
 ```

@@ -146,52 +146,52 @@ class FileInfo:
     content_flags = 0       # Locale flags. CASC_INVALID_ID if not supported
 
 
-cdef cppclass CASCHandlerInternal:
+cdef _open_file_handle(void* storage_handle
+                       , identifier: Union[str, int, bytes]
+                       , open_flags: int
+                       , locale_flags: int
+                       , void** file_handle):
 
-    CASCHandlerInternal()
+    cdef char* filepath
+    cdef LPCSTR filedataid
+    cdef BYTE key[16]
 
-    void* storage_handle
-    void* file_handle
+    if open_flags == FileOpenFlags.CASC_OPEN_BY_NAME:
 
-cdef class CASCHandler:
+        pybytestr = identifier.encode('utf-8')
+        filepath = pybytestr
 
-    cdef CASCHandlerInternal internal
+        if not casc.CascOpenFile(storage_handle, filepath, locale_flags, open_flags, file_handle):
+            raise ERROR_CODE_MAP.get(casc.GetLastError())
 
-    def __cinit__(self, path: str, is_online: bool = False):
+    elif open_flags & FileOpenFlags.CASC_OPEN_BY_FILEID:
+
+        filedataid = <LPCSTR><size_t>identifier
+
+        if not casc.CascOpenFile(storage_handle, filedataid, locale_flags, open_flags, file_handle):
+            raise ERROR_CODE_MAP.get(casc.GetLastError())
+
+    elif open_flags & FileOpenFlags.CASC_OPEN_BY_CKEY or open_flags & FileOpenFlags.CASC_OPEN_BY_EKEY:
+
+        if len(identifier) != 16:
+            raise ERROR_INVALID_PARAMETER("CKey or Ekey must be a bytes object with length of 16")
+
+        key = identifier
+
+        if not casc.CascOpenFile(storage_handle, key, locale_flags, open_flags, file_handle):
+            raise ERROR_CODE_MAP.get(casc.GetLastError())
+
+
+cdef class CASCFile:
+
+    cdef void* file_handle
+    cdef bytes raw_data
+    cdef CASCHandler storage
+
+    def __cinit__(self, storage: CASCHandler, identifier: Union[str, int, bytes], open_flags: int):
 
         """
-        Intialize CASC Handler
-
-        Args:
-            path:
-                Local storages: A parameter string containing the path to a local storage.
-                If the storage contains multiple products (World of Warcraft Retail + World of Warcraft PTR),
-                the product can be specified by the product code name separated by a colon
-                ("C:\Games\World of Warcraft:wowt").
-
-                Online storage: A parameter string containing the path to a local cache,
-                followed by a product code name and region, both separated by a colon. Example: "C:\Cache:wow:eu".
-
-            is_online: Open this storage as online or local storage (bool).
-
-        Returns:
-            None
-        """
-
-        self.internal = CASCHandlerInternal()
-
-        if is_online:
-            if not casc.CascOpenOnlineStorage(path.encode('utf-8'), 0x00000002, &self.internal.storage_handle):
-                raise ERROR_CODE_MAP.get(casc.GetLastError())
-        else:
-            if not casc.CascOpenStorage(path.encode('utf-8'), 0x00000002, &self.internal.storage_handle):
-                raise ERROR_CODE_MAP.get(casc.GetLastError())
-
-    def read_file(self, identifier: Union[str, int, bytes], open_flags: int) -> bytes:
-
-
-        """
-        Read file from opened CASC storage
+        Initialize and read file from CASC
 
         Args:
             identifier:
@@ -208,55 +208,13 @@ cdef class CASCHandler:
 
         """
 
-        self._open_file_handle(identifier, open_flags)
+        _open_file_handle(storage.storage_handle, identifier, open_flags, storage.locale_flags, &self.file_handle)
 
-        cdef DWORD file_size = casc.CascGetFileSize(self.internal.file_handle, NULL)
-        cdef DWORD bytes_read
-        cdef char *data = <char *>malloc(file_size)
+        self.storage = storage
+        self.storage.open_files.add(self)
 
-        casc.CascReadFile(self.internal.file_handle, data, file_size, &bytes_read)
+        self.raw_data = None
 
-        if not bytes_read:
-            raise ERROR_CODE_MAP.get(casc.GetLastError())
-
-        if bytes_read < file_size:
-            raise ERROR_FILE_ENCRYPTED
-
-        pybytes = memoryview(data[:bytes_read]).tobytes()
-        free(data)
-
-        casc.CascCloseFile(self.internal.file_handle)
-
-        return pybytes
-
-    def file_exists(self, identifier: Union[str, int, bytes], open_flags: int) -> bool:
-
-        """
-        Check if file exists in opened CASC storage
-
-        Args:
-            identifier:
-               Specification of the file to check. This can be name, symbolic name, file data id, content key
-               or an encoded key. Type of this parameter is specified in the open_flags parameter
-
-            open_flags:
-                Open options. Can be a combination of one or more flags from FileOpenFlags class.
-                Note that flags CASC_OPEN_BY_* are mutually exclusive.
-
-        Returns:
-
-            Bool: identifies if the requested file exists
-
-        """
-
-        try:
-            self._open_file_handle(identifier, open_flags)
-        except CASCLibException:
-            return False
-
-        casc.CascCloseFile(self.internal.file_handle)
-
-        return True
 
     def get_file_info(self, identifier: Union[str, int, bytes], open_flags: int) -> FileInfo:
 
@@ -279,17 +237,10 @@ cdef class CASCHandler:
 
         """
 
-        try:
-            self._open_file_handle(identifier, open_flags)
-        except CASCLibException:
-            return None
-
         cdef void* file_info_raw = <void*>malloc(sizeof(casc.CASC_FILE_FULL_INFO))
 
-        casc.CascGetFileInfo(self.internal.file_handle, casc.CASC_FILE_INFO_CLASS.CascFileFullInfo,
+        casc.CascGetFileInfo(self.file_handle, casc.CASC_FILE_INFO_CLASS.CascFileFullInfo,
                              file_info_raw, sizeof(casc.CASC_FILE_FULL_INFO), NULL)
-
-        casc.CascCloseFile(self.internal.file_handle)
 
         cdef casc.CASC_FILE_FULL_INFO* file_info = <casc.CASC_FILE_FULL_INFO*>file_info_raw
 
@@ -314,48 +265,155 @@ cdef class CASCHandler:
         return py_file_info
 
     def close(self):
-        """
-        Close storage
+        """ Close file """
+        self._close_file()
+        self.storage.open_files.remove(self)
+
+
+    def _close_file(self):
+        casc.CascCloseFile(self.file_handle)
+
+    @property
+    def data(self):
+
+        if self.raw_data is not None:
+            return self.raw_data
+
+
+        cdef DWORD file_size = casc.CascGetFileSize(self.file_handle, NULL)
+        cdef DWORD bytes_read
+        cdef char *data = <char*>malloc(file_size)
+
+        casc.CascReadFile(self.file_handle, data, file_size, &bytes_read)
+
+        if not bytes_read:
+            raise ERROR_CODE_MAP.get(casc.GetLastError())
+
+        if bytes_read < file_size:
+            raise ERROR_FILE_ENCRYPTED
+
+        self.raw_data = memoryview(data[:bytes_read]).tobytes()
+        free(data)
+
+        return self.raw_data
+
+    @data.setter
+    def data(self, other):
+        raise PermissionError('\nData is a read-only property.')
+
+    @data.deleter
+    def data(self):
+        raise PermissionError('\nData is a read-only property.')
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        self.close()
+
+
+cdef class CASCHandler:
+
+    cdef void* storage_handle
+    cdef int locale_flags
+    cdef set open_files
+
+    def __cinit__(self, path: str, locale_flags: int, is_online: bool = False):
 
         """
+        Intialize CASC Handler
 
-        if self.internal.file_handle != NULL:
-            casc.CascCloseFile(self.internal.file_handle)
+        Args:
+            path:
+                Local storages: A parameter string containing the path to a local storage.
+                If the storage contains multiple products (World of Warcraft Retail + World of Warcraft PTR),
+                the product can be specified by the product code name separated by a colon
+                ("C:\Games\World of Warcraft:wowt").
 
-        if self.internal.storage_handle != NULL:
-            casc.CascCloseStorage(self.internal.storage_handle)
+                Online storage: A parameter string containing the path to a local cache,
+                followed by a product code name and region, both separated by a colon. Example: "C:\Cache:wow:eu".
 
+            is_online: Open this storage as online or local storage (bool).
 
-    def _open_file_handle(self, identifier: Union[str, int, bytes], open_flags: int):
+        Returns:
+            None
+        """
 
-        cdef char* filepath
-        cdef LPCSTR filedataid
-        cdef BYTE key[16]
+        self.open_files = set()
+        self.locale_flags = locale_flags
 
-        if open_flags == FileOpenFlags.CASC_OPEN_BY_NAME:
-
-            pybytestr = identifier.encode('utf-8')
-            filepath = pybytestr
-
-            if not casc.CascOpenFile(self.internal.storage_handle, filepath, 0x00000002, open_flags, &self.internal.file_handle):
+        if is_online:
+            if not casc.CascOpenOnlineStorage(path.encode('utf-8'), locale_flags, &self.storage_handle):
+                raise ERROR_CODE_MAP.get(casc.GetLastError())
+        else:
+            if not casc.CascOpenStorage(path.encode('utf-8'), locale_flags, &self.storage_handle):
                 raise ERROR_CODE_MAP.get(casc.GetLastError())
 
-        elif open_flags & FileOpenFlags.CASC_OPEN_BY_FILEID:
 
-            filedataid = <LPCSTR><size_t>identifier
+    def read_file(self, identifier: Union[str, int, bytes], open_flags: int) -> CASCFile:
 
-            if not casc.CascOpenFile(self.internal.storage_handle, filedataid, 0x00000002, open_flags, &self.internal.file_handle):
-                raise ERROR_CODE_MAP.get(casc.GetLastError())
+        """
+        Read file from CASC
 
-        elif open_flags & FileOpenFlags.CASC_OPEN_BY_CKEY or open_flags & FileOpenFlags.CASC_OPEN_BY_EKEY:
+        Args:
+            identifier:
+               Specification of the file to open. This can be name, symbolic name, file data id, content key
+               or an encoded key. Type of this parameter is specified in the open_flags parameter
 
-            if len(identifier) != 16:
-                raise ERROR_INVALID_PARAMETER("CKey or Ekey must be a bytes object with length of 16")
+            open_flags:
+                Open options. Can be a combination of one or more flags from FileOpenFlags class.
+                Note that flags CASC_OPEN_BY_* are mutually exclusive.
 
-            key = identifier
+        Returns:
 
-            if not casc.CascOpenFile(self.internal.storage_handle, key, 0x00000002, open_flags, &self.internal.file_handle):
-                raise ERROR_CODE_MAP.get(casc.GetLastError())
+            bytes: Python bytes object containing raw bytes of the read file
+
+        """
+
+        return CASCFile(self, identifier, open_flags)
+
+
+    def file_exists(self, identifier: Union[str, int, bytes], open_flags: int) -> bool:
+
+        """
+        Check if file exists in opened CASC storage
+
+        Args:
+            identifier:
+               Specification of the file to check. This can be name, symbolic name, file data id, content key
+               or an encoded key. Type of this parameter is specified in the open_flags parameter
+
+            open_flags:
+                Open options. Can be a combination of one or more flags from FileOpenFlags class.
+                Note that flags CASC_OPEN_BY_* are mutually exclusive.
+
+        Returns:
+
+            Bool: identifies if the requested file exists
+
+        """
+
+        cdef void* file_handle
+
+        try:
+            _open_file_handle(self.storage_handle, identifier, open_flags, self.locale_flags, &file_handle)
+        except CASCLibException:
+            return False
+
+        casc.CascCloseFile(file_handle)
+
+        return True
+
+    def close(self):
+        """ Close storage """
+
+        for file in self.open_files:
+            file._close_file()
+
+        self.open_files.clear()
+
+        if self.storage_handle != NULL:
+            casc.CascCloseStorage(self.storage_handle)
 
     def __contains__(self, item: Tuple[Union[str, int, bytes], int]):
         return self.file_exists(item[0], item[1])

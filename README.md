@@ -19,10 +19,10 @@ Once the building is finished, the library is ready to use in Python.
 The Python API of the library is documented in the code with docstrings and type hints.
 
 ```
-from CASC import CASCHandler, FileOpenFlags
+from CASC import CASCHandler, FileOpenFlags, LocaleFlags
 
 # As a context manager
-with CASCHandler('/Volumes/something/World of Warcraft/', False) as casc:
+with CASCHandler('/Volumes/something/World of Warcraft/', LocaleFlags.CASC_LOCALE_ENUS, False) as casc:
     flags = FileOpenFlags.CASC_OPEN_BY_FILEID  # load file by FileDataID
 
     with casc.read_file(189077, flags) as file:  # CASCFile can also be opened as a context manager
@@ -32,7 +32,7 @@ with CASCHandler('/Volumes/something/World of Warcraft/', False) as casc:
     print(casc.file_exists(189077, flags))  # check if file exists
     
 # Usage with manual closing
-casc = CASCHandler('/Volumes/something/World of Warcraft/', False)
+casc = CASCHandler('/Volumes/something/World of Warcraft/', LocaleFlags.CASC_LOCALE_ENUS, False)
 print(('world/arttest/boxtest/xyz.m2', FileOpenFlags.CASC_OPEN_BY_NAME) in casc)  # check if file exists
 casc.close()
 ```

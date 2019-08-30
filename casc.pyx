@@ -187,6 +187,7 @@ cdef class CASCFile:
     cdef void* file_handle
     cdef bytes raw_data
     cdef CASCHandler storage
+    cdef object file_info
 
     def __cinit__(self, storage: CASCHandler, identifier: Union[str, int, bytes], open_flags: int):
 
@@ -214,21 +215,22 @@ cdef class CASCFile:
         self.storage.open_files.add(self)
 
         self.raw_data = None
+        self.file_info = None
+
+    def close(self):
+        """ Close file """
+        self._close_file()
+        self.storage.open_files.remove(self)
 
 
-    def get_file_info(self, identifier: Union[str, int, bytes], open_flags: int) -> FileInfo:
+    def _close_file(self):
+        casc.CascCloseFile(self.file_handle)
+
+    @property
+    def info(self) -> FileInfo:
 
         """
         Retrieve file info
-
-        Args:
-            identifier:
-               Specification of the file to retrieve info from. This can be name, symbolic name, file data id,
-               content key or an encoded key. Type of this parameter is specified in the open_flags parameter
-
-            open_flags:
-                Open options. Can be a combination of one or more flags from FileOpenFlags class.
-                Note that flags CASC_OPEN_BY_* are mutually exclusive.
 
         Returns:
 
@@ -236,6 +238,9 @@ cdef class CASCFile:
             None: if file failed to open or does not exist.
 
         """
+
+        if self.file_info is not None:
+            return self.file_info
 
         cdef void* file_info_raw = <void*>malloc(sizeof(casc.CASC_FILE_FULL_INFO))
 
@@ -262,16 +267,17 @@ cdef class CASCFile:
         py_file_info.span_count = file_info.SpanCount
         py_file_info.tag_bit_mask = file_info.TagBitMask
 
+        self.file_info = py_file_info
+
         return py_file_info
 
-    def close(self):
-        """ Close file """
-        self._close_file()
-        self.storage.open_files.remove(self)
+    @info.setter
+    def info(self, value):
+        raise PermissionError('\nFile info is a read-only property.')
 
-
-    def _close_file(self):
-        casc.CascCloseFile(self.file_handle)
+    @info.deleter
+    def info(self):
+        raise PermissionError('\nFile info is a read-only property.')
 
     @property
     def data(self):

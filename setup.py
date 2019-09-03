@@ -27,5 +27,4 @@ if platform.system() == 'Darwin':
     for filepath in os.listdir(os.path.abspath(os.path.dirname(__file__))):
         if 'darwin' in filepath and 'CASC' in filepath:
             subprocess.call(['install_name_tool', '-change', 'libcasc.dylib', '@loader_path/libcasc.dylib', filepath])
-            print('HEY')
             break

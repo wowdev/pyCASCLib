@@ -1,5 +1,6 @@
 from libcpp cimport bool
 from libc.stdlib cimport free, malloc
+from libc.string cimport strcpy
 from typing import Union, Tuple
 
 cimport casc
@@ -323,6 +324,11 @@ cdef class CASCHandler:
     cdef void* storage_handle
     cdef int locale_flags
     cdef set open_files
+    cdef CASC_OPEN_STORAGE_ARGS p_args
+
+    cdef char* c_path
+    cdef char* region
+    cdef char* product
 
     def __cinit__(self, path: str, locale_flags: int, is_online: bool = False):
 
@@ -348,11 +354,26 @@ cdef class CASCHandler:
         self.open_files = set()
         self.locale_flags = locale_flags
 
+        self.c_path = <char *>malloc(len(path) + 1)
+        strcpy(self.c_path, path.encode('utf-8'))
+
+        self.region = <char *>malloc(3)
+        strcpy(self.region, 'eu'.encode('utf-8'))
+
+        self.product = <char *>malloc(4)
+        strcpy(self.product, 'wow'.encode('utf-8'))
+
+        self.p_args.Size = sizeof(CASC_OPEN_STORAGE_ARGS)
+        self.p_args.szLocalPath = self.c_path
+        self.p_args.szCodeName = self.product
+        self.p_args.szRegion = self.region
+        self.p_args.dwLocaleMask = locale_flags
+
         if is_online:
-            if not casc.CascOpenOnlineStorage(path.encode('utf-8'), locale_flags, &self.storage_handle):
+            if not casc.CascOpenStorageEx(NULL, &self.p_args, True, &self.storage_handle):
                 raise ERROR_CODE_MAP.get(casc.GetLastError())
         else:
-            if not casc.CascOpenStorage(path.encode('utf-8'), locale_flags, &self.storage_handle):
+            if not casc.CascOpenStorageEx(NULL, &self.p_args, False, &self.storage_handle):
                 raise ERROR_CODE_MAP.get(casc.GetLastError())
 
 

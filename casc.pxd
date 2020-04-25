@@ -1,5 +1,8 @@
 from libcpp cimport bool
 
+cdef extern from "Python.h":
+    char *PyString_AsString(object)
+
 cdef extern from "CASCLib/src/CASCLib.h":
 
     ctypedef unsigned long size_t
@@ -41,10 +44,9 @@ cdef extern from "CASCLib/src/CASCLib.h":
         DWORD TotalValue
     )
 
-
-    cdef cppclass PCASC_OPEN_STORAGE_ARGS:
+    ctypedef struct CASC_OPEN_STORAGE_ARGS:
         size_t Size
-        LPCTSTR szLocalPath 
+        LPCTSTR szLocalPath
         LPCTSTR szCodeName
         LPCTSTR szRegion
         PFNPROGRESSCALLBACK PfnProgressCallback
@@ -53,6 +55,8 @@ cdef extern from "CASCLib/src/CASCLib.h":
         void * PtrProductParam
         DWORD dwLocaleMask
         DWORD dwFlags
+
+    ctypedef CASC_OPEN_STORAGE_ARGS* PCASC_OPEN_STORAGE_ARGS
 
 
     ctypedef enum CASC_FILE_INFO_CLASS:
@@ -89,7 +93,7 @@ cdef extern from "CASCLib/src/CASCLib.h":
     DWORD CascGetFileSize(HANDLE hFile, PDWORD pdwFileSizeHigh);
     bool CascGetFileSize64(HANDLE hFile, PULONGLONG PtrFileSize)
     bool CascReadFile(HANDLE hFile, void * lpBuffer, DWORD dwToRead, PDWORD pdwRead)
-    bool CascCloseFile(void* hFile);
+    bool CascCloseFile(void* hFile)
     bool CascCloseStorage(void* hStorage)
     bool CascGetFileInfo(HANDLE hFile, CASC_FILE_INFO_CLASS InfoClass, void* pvFileInfo, size_t cbFileInfo, size_t* pcbLengthNeeded)
     DWORD GetLastError()

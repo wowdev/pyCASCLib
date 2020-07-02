@@ -322,7 +322,7 @@ cdef class CASCFile:
 cdef class CASCHandler:
 
     cdef void* storage_handle
-    cdef int locale_flags
+    cdef long long locale_flags
     cdef set open_files
     cdef CASC_OPEN_STORAGE_ARGS p_args
 
@@ -355,13 +355,13 @@ cdef class CASCHandler:
         self.locale_flags = locale_flags
 
         self.c_path = <char *>malloc(len(path) + 1)
-        strcpy(self.c_path, path.encode('utf-8'))
+        strcpy(self.c_path, path.encode('ascii'))
 
         self.region = <char *>malloc(3)
-        strcpy(self.region, 'eu'.encode('utf-8'))
+        strcpy(self.region, 'eu'.encode('ascii'))
 
         self.product = <char *>malloc(4)
-        strcpy(self.product, 'wow'.encode('utf-8'))
+        strcpy(self.product, 'wow'.encode('ascii'))
 
         self.p_args.Size = sizeof(CASC_OPEN_STORAGE_ARGS)
         self.p_args.szLocalPath = self.c_path

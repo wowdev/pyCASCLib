@@ -4,6 +4,7 @@ from libc.string cimport strcpy
 from typing import Union, Tuple
 
 cimport casc
+from casc cimport *
 
 
 class CASCLibException(Exception):

@@ -3,7 +3,7 @@ from libcpp cimport bool
 cdef extern from "Python.h":
     char *PyString_AsString(object)
 
-cdef extern from "CASCLib/src/CASCLib.h":
+cdef extern from "CascLib.h":
 
     ctypedef unsigned long size_t
     ctypedef unsigned char  BYTE;
@@ -55,6 +55,7 @@ cdef extern from "CASCLib/src/CASCLib.h":
         void * PtrProductParam
         DWORD dwLocaleMask
         DWORD dwFlags
+        LPCTSTR szBuildKey
 
     ctypedef CASC_OPEN_STORAGE_ARGS* PCASC_OPEN_STORAGE_ARGS
 
@@ -68,7 +69,7 @@ cdef extern from "CASCLib/src/CASCLib.h":
 
 
     ctypedef struct CASC_FILE_FULL_INFO:
-        
+
         BYTE CKey[16]                              # CKey
         BYTE EKey[16]                              # EKey
         char  DataFileName[0x10]                   # Plain name of the data file where the file is stored
@@ -97,4 +98,3 @@ cdef extern from "CASCLib/src/CASCLib.h":
     bool CascCloseStorage(void* hStorage)
     bool CascGetFileInfo(HANDLE hFile, CASC_FILE_INFO_CLASS InfoClass, void* pvFileInfo, size_t cbFileInfo, size_t* pcbLengthNeeded)
     DWORD GetLastError()
-

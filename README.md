@@ -8,11 +8,11 @@ but support for additional functions will be added in the future. Contributions 
 
 Cython is required to build this project as a Python module.
 
-A shared library (.dll, .so, .dylib, etc depending on platform) is required for the module to work. The binary should be placed 
-in the package root. Make sure to change install path of the library to local one when compiling on Mac.
-
 After installing Cython run `python3 setup.py build_ext --inplace` to build the Python module.
 Once the building is finished, the library is ready to use in Python.
+
+The build script should build CascLib automatically and link against it. Build parameteres are set in setup.py script file.
+On Linux/Mac you may be required to have BZip2 installed into your system.
 
 # Example usage
 

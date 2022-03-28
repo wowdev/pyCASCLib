@@ -18,7 +18,7 @@ Once the building is finished, the library is ready to use in Python.
 
 The Python API of the library is documented in the code with docstrings and type hints.
 
-```
+```cython
 from CASC import CASCHandler, FileOpenFlags, LocaleFlags
 
 # As a context manager

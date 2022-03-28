@@ -97,4 +97,4 @@ cdef extern from "CascLib.h":
     bool CascCloseFile(void* hFile)
     bool CascCloseStorage(void* hStorage)
     bool CascGetFileInfo(HANDLE hFile, CASC_FILE_INFO_CLASS InfoClass, void* pvFileInfo, size_t cbFileInfo, size_t* pcbLengthNeeded)
-    DWORD GetLastError()
+    DWORD GetCascError()

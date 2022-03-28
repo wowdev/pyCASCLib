@@ -164,14 +164,14 @@ cdef _open_file_handle(void* storage_handle
         filepath = pybytestr
 
         if not casc.CascOpenFile(storage_handle, filepath, locale_flags, open_flags, file_handle):
-            raise ERROR_CODE_MAP.get(casc.GetLastError())
+            raise ERROR_CODE_MAP.get(casc.GetCascError())
 
     elif open_flags & FileOpenFlags.CASC_OPEN_BY_FILEID:
 
         filedataid = <LPCSTR><size_t>identifier
 
         if not casc.CascOpenFile(storage_handle, filedataid, locale_flags, open_flags, file_handle):
-            raise ERROR_CODE_MAP.get(casc.GetLastError())
+            raise ERROR_CODE_MAP.get(casc.GetCascError())
 
     elif open_flags & FileOpenFlags.CASC_OPEN_BY_CKEY or open_flags & FileOpenFlags.CASC_OPEN_BY_EKEY:
 
@@ -181,7 +181,7 @@ cdef _open_file_handle(void* storage_handle
         key = identifier
 
         if not casc.CascOpenFile(storage_handle, key, locale_flags, open_flags, file_handle):
-            raise ERROR_CODE_MAP.get(casc.GetLastError())
+            raise ERROR_CODE_MAP.get(casc.GetCascError())
 
 
 cdef class CASCFile:
@@ -295,7 +295,7 @@ cdef class CASCFile:
         casc.CascReadFile(self.file_handle, data, file_size, &bytes_read)
 
         if not bytes_read:
-            raise ERROR_CODE_MAP.get(casc.GetLastError())
+            raise ERROR_CODE_MAP.get(casc.GetCascError())
 
         if bytes_read < file_size:
             raise ERROR_FILE_ENCRYPTED
@@ -372,10 +372,10 @@ cdef class CASCHandler:
 
         if is_online:
             if not casc.CascOpenStorageEx(NULL, &self.p_args, True, &self.storage_handle):
-                raise ERROR_CODE_MAP.get(casc.GetLastError())
+                raise ERROR_CODE_MAP.get(casc.GetCascError())
         else:
             if not casc.CascOpenStorageEx(NULL, &self.p_args, False, &self.storage_handle):
-                raise ERROR_CODE_MAP.get(casc.GetLastError())
+                raise ERROR_CODE_MAP.get(casc.GetCascError())
 
 
     def read_file(self, identifier: Union[str, int, bytes], open_flags: int) -> CASCFile:

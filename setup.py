@@ -55,11 +55,13 @@ def main():
     libraries = []
     library_dirs = []
     extra_objects = []
+    define_macros = []
 
     if sys.platform == 'win32':
         libraries.extend(static_libraries)
         library_dirs.append(static_lib_dir)
         extra_objects = []
+        define_macros.append(('CASCLIB_NO_AUTO_LINK_LIBRARY', None))
     else: # POSIX
         extra_objects = ['{}/lib{}.a'.format(static_lib_dir, l) for l in static_libraries]
 
@@ -75,7 +77,8 @@ def main():
             libraries=libraries,
             library_dirs=library_dirs,
             include_dirs = ["include"],
-            extra_objects=extra_objects
+            extra_objects=extra_objects,
+            define_macros=define_macros
             )
         ),
         requires=['Cython']

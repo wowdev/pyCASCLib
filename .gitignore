@@ -9,3 +9,4 @@ casc.cpp
 *.lib
 *.a
 *.dylib
+*.dll

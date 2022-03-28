@@ -1,4 +1,11 @@
+__pycache__/
 build/
 CASCLib/
 include/
 lib/
+casc.cpp
+*.so
+*.pyd
+*.lib
+*.a
+*.dylib

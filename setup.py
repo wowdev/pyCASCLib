@@ -2,14 +2,11 @@
 import platform
 import subprocess
 import os
+import sys
 from setuptools import setup, Extension
 from Cython.Build import cythonize
 
 from pathlib import Path
-
-# allow local imports from root package
-import sys
-sys.path.append(str(Path(__file__).parent.parent.parent.absolute()))
 
 from cmake import check_for_cmake, CMAKE_EXE
 

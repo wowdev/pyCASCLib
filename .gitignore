@@ -10,3 +10,4 @@ casc.cpp
 *.a
 *.dylib
 *.dll
+*.pdb

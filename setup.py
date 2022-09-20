@@ -43,19 +43,20 @@ def main(debug: bool):
     if sys.platform != 'win32':
         cmake_defines.extend(['-DCMAKE_CXX_FLAGS=-fPIC', '-DCMAKE_C_FLAGS=-fPIC'])
 
-    status = subprocess.call([CMAKE_EXE, '..', *cmake_defines])
+    status = subprocess.call(['cmake', '..', *cmake_defines])
 
     if status:
         print_error(f'\nError building CASCLib. See CMake error above.')
         sys.exit(1)
 
-    status = subprocess.check_call([CMAKE_EXE, '--build', '.', '--config', 'Debug' if debug else 'Release'])
+    status = subprocess.check_call(['cmake', '--build', '.', f'--config {"Debug" if debug else "Release"}'])
 
     if status:
         print_error(f'\nError building CASCLib. See build error above.')
         sys.exit(1)
 
-    status = subprocess.call([CMAKE_EXE, '--install', '.', '--prefix', CUR_DIR])
+    status = subprocess.call(['cmake', '--install', '.', f'--prefix {CUR_DIR}'
+                              , f'--config {"Debug" if debug else "Release"}'])
 
     if status:
         print_error(f'\nError building CASCLib. Error setting install configuration.')

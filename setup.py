@@ -7,8 +7,6 @@ import sys
 from setuptools import setup, Extension
 from Cython.Build import cythonize
 
-from cmake import check_for_cmake, CMAKE_EXE
-
 CUR_DIR = os.path.abspath(os.path.dirname(__file__))
 
 
@@ -29,7 +27,6 @@ def main(debug: bool):
     print_info('\nBuilding CASC extension...')
     print(f'Target mode: {"Debug" if debug else "Release"}')
     # build CASCLib
-    check_for_cmake()
 
     build_dir = os.path.join(CUR_DIR, 'CASCLib', 'build')
 

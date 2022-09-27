@@ -75,6 +75,7 @@ def main(debug: bool):
         define_macros.append(('CASCLIB_NO_AUTO_LINK_LIBRARY', None))
     else: # POSIX
         extra_objects = ['{}/lib{}.a'.format(static_lib_dir, l) for l in static_libraries]
+        libraries.append('z')
 
     # compiler and linker settings
     if platform.system() == 'Darwin':

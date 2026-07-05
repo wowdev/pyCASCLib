@@ -34,6 +34,7 @@ def main(debug: bool):
     os.chdir(build_dir)
 
     cmake_defines = ['-DCMAKE_BUILD_TYPE=Debug' if debug else '-DCMAKE_BUILD_TYPE=Release'
+    , '-DCMAKE_POLICY_VERSION_MINIMUM=3.5'
     , '-DCASC_BUILD_SHARED_LIB=OFF'
     , '-DCASC_BUILD_STATIC_LIB=ON']
 
